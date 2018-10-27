@@ -31,6 +31,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!--SpringBoot继承junit测试的起步依赖-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
