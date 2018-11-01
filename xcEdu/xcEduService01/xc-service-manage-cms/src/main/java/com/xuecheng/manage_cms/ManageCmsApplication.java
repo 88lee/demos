@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
+ * 启动类会扫描所在包下所有子包的所有bean
+ *
  * @author LiYuan
  * Created on 2018/10/31.
  */
