@@ -8,6 +8,8 @@ import com.xuecheng.framework.model.response.QueryResult;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
 import com.xuecheng.manage_cms.service.PageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,8 +36,26 @@ public class PageServiceImpl implements PageService {
     public QueryResponseResult findList(int page, int size, QueryPageRequest queryPageRequest) {
         QueryResponseResult queryResponseResult;
         try {
+            //分页
             Pageable pageable = PageRequest.of(page <= 0 ? 1 : page - 1, size <= 0 ? 10 : size);
-            Page<CmsPage> all = cmsPageRepository.findAll(pageable);
+
+            //查询条件
+            if (queryPageRequest == null) {
+                queryPageRequest = new QueryPageRequest();
+            }
+            //条件值
+            CmsPage cmsPage = new CmsPage();
+            cmsPage.setSiteId(queryPageRequest.getSiteId());
+            cmsPage.setPageId(queryPageRequest.getPageId());
+            cmsPage.setPageName(queryPageRequest.getPageName());
+            cmsPage.setPageAliase(queryPageRequest.getPageAliase());
+            cmsPage.setTemplateId(queryPageRequest.getTemplateId());
+            //匹配规则
+            ExampleMatcher matcher = ExampleMatcher.matching();
+            matcher = matcher.withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains());
+            Example<CmsPage> example = Example.of(cmsPage, matcher);
+
+            Page<CmsPage> all = cmsPageRepository.findAll(example, pageable);
 
             QueryResult<CmsPage> queryResult = new QueryResult<>();
             queryResult.setList(all.getContent());
