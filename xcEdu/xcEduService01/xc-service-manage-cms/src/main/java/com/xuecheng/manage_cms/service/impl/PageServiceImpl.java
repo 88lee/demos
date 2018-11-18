@@ -2,6 +2,7 @@ package com.xuecheng.manage_cms.service.impl;
 
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
+import com.xuecheng.framework.domain.cms.response.CmsPageResult;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
@@ -33,6 +34,7 @@ public class PageServiceImpl implements PageService {
      * @param queryPageRequest 查询条件
      * @return 查询结果
      */
+    @Override
     public QueryResponseResult findList(int page, int size, QueryPageRequest queryPageRequest) {
         QueryResponseResult queryResponseResult;
         try {
@@ -62,10 +64,39 @@ public class PageServiceImpl implements PageService {
             queryResult.setTotal(all.getTotalElements());
             queryResponseResult = new QueryResponseResult(CommonCode.SUCCESS, queryResult);
         } catch (Exception e) {
+            e.printStackTrace();
             QueryResult<CmsPage> queryResult = new QueryResult<>();
             queryResponseResult = new QueryResponseResult(CommonCode.SERVER_ERROR, queryResult);
         }
         return queryResponseResult;
+    }
+
+    /**
+     * 新增页面
+     *
+     * @param cmsPage 页面
+     * @return 新增结果
+     */
+    @Override
+    public CmsPageResult add(CmsPage cmsPage) {
+        CmsPageResult cmsPageResult;
+        try {
+            //根据siteId,pageName,pageWebPath确定唯一页面
+            //先判断是否存在，然后添加
+            CmsPage exitsCmsPage = cmsPageRepository.findByPageNameAndSiteIdAndPageWebPath(cmsPage.getPageName(),
+                cmsPage.getSiteId(), cmsPage.getPageWebPath());
+            if (exitsCmsPage == null) {
+                cmsPage.setPageId(null);
+                CmsPage save = cmsPageRepository.save(cmsPage);
+                cmsPageResult = new CmsPageResult(CommonCode.SUCCESS, save);
+            } else {
+                cmsPageResult = new CmsPageResult(CommonCode.FAIL, null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            cmsPageResult = new CmsPageResult(CommonCode.SERVER_ERROR, null);
+        }
+        return cmsPageResult;
     }
 
 }

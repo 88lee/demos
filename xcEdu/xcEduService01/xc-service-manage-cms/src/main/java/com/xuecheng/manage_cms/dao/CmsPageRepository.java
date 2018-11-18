@@ -8,5 +8,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * Created on 2018/11/1.
  */
 public interface CmsPageRepository extends MongoRepository<CmsPage, String> {
-    //    CmsPage findByPageName(String page);
+
+    CmsPage findByPageNameAndSiteIdAndPageWebPath(String pageName, String siteId, String pageWebPath);
+
 }
