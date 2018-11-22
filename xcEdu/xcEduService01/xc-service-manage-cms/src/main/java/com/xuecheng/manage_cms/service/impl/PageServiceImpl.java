@@ -2,10 +2,13 @@ package com.xuecheng.manage_cms.service.impl;
 
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
+import com.xuecheng.framework.domain.cms.response.CmsCode;
 import com.xuecheng.framework.domain.cms.response.CmsPageResult;
+import com.xuecheng.framework.exception.ExceptionCast;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
+import com.xuecheng.framework.model.response.ResponseResult;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
 import com.xuecheng.manage_cms.service.PageService;
 import java.util.Optional;
@@ -37,39 +40,32 @@ public class PageServiceImpl implements PageService {
      */
     @Override
     public QueryResponseResult findList(int page, int size, QueryPageRequest queryPageRequest) {
-        QueryResponseResult queryResponseResult;
-        try {
-            //分页
-            Pageable pageable = PageRequest.of(page <= 0 ? 1 : page - 1, size <= 0 ? 10 : size);
+        //分页
+        Pageable pageable = PageRequest.of(page <= 0 ? 1 : page - 1, size <= 0 ? 10 : size);
 
-            //查询条件
-            if (queryPageRequest == null) {
-                queryPageRequest = new QueryPageRequest();
-            }
-            //条件值
-            CmsPage cmsPage = new CmsPage();
-            cmsPage.setSiteId(queryPageRequest.getSiteId());
-            cmsPage.setPageId(queryPageRequest.getPageId());
-            cmsPage.setPageName(queryPageRequest.getPageName());
-            cmsPage.setPageAliase(queryPageRequest.getPageAliase());
-            cmsPage.setTemplateId(queryPageRequest.getTemplateId());
-            //匹配规则
-            ExampleMatcher matcher = ExampleMatcher.matching();
-            matcher = matcher.withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains());
-            Example<CmsPage> example = Example.of(cmsPage, matcher);
-
-            Page<CmsPage> all = cmsPageRepository.findAll(example, pageable);
-
-            QueryResult<CmsPage> queryResult = new QueryResult<>();
-            queryResult.setList(all.getContent());
-            queryResult.setTotal(all.getTotalElements());
-            queryResponseResult = new QueryResponseResult(CommonCode.SUCCESS, queryResult);
-        } catch (Exception e) {
-            e.printStackTrace();
-            QueryResult<CmsPage> queryResult = new QueryResult<>();
-            queryResponseResult = new QueryResponseResult(CommonCode.SERVER_ERROR, queryResult);
+        //查询条件
+        if (queryPageRequest == null) {
+            queryPageRequest = new QueryPageRequest();
         }
-        return queryResponseResult;
+        //条件值
+        CmsPage cmsPage = new CmsPage();
+        cmsPage.setSiteId(queryPageRequest.getSiteId());
+        cmsPage.setPageId(queryPageRequest.getPageId());
+        cmsPage.setPageName(queryPageRequest.getPageName());
+        cmsPage.setPageAliase(queryPageRequest.getPageAliase());
+        cmsPage.setTemplateId(queryPageRequest.getTemplateId());
+        //匹配规则
+        ExampleMatcher matcher = ExampleMatcher.matching();
+        matcher = matcher.withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains());
+        Example<CmsPage> example = Example.of(cmsPage, matcher);
+
+        Page<CmsPage> all = cmsPageRepository.findAll(example, pageable);
+
+        QueryResult<CmsPage> queryResult = new QueryResult<>();
+        queryResult.setList(all.getContent());
+        queryResult.setTotal(all.getTotalElements());
+
+        return new QueryResponseResult(CommonCode.SUCCESS, queryResult);
     }
 
     /**
@@ -80,24 +76,19 @@ public class PageServiceImpl implements PageService {
      */
     @Override
     public CmsPageResult add(CmsPage cmsPage) {
-        CmsPageResult cmsPageResult;
-        try {
-            //根据siteId,pageName,pageWebPath确定唯一页面
-            //先判断是否存在，然后添加
-            CmsPage exitsCmsPage = cmsPageRepository.findByPageNameAndSiteIdAndPageWebPath(cmsPage.getPageName(),
-                cmsPage.getSiteId(), cmsPage.getPageWebPath());
-            if (exitsCmsPage == null) {
-                cmsPage.setPageId(null);
-                CmsPage save = cmsPageRepository.save(cmsPage);
-                cmsPageResult = new CmsPageResult(CommonCode.SUCCESS, save);
-            } else {
-                cmsPageResult = new CmsPageResult(CommonCode.FAIL, null);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            cmsPageResult = new CmsPageResult(CommonCode.SERVER_ERROR, null);
+        if (cmsPage == null) {
+            ExceptionCast.cast(CmsCode.CMS_ADDPAGE_PAGEINFOISNULL);
         }
-        return cmsPageResult;
+        //根据siteId,pageName,pageWebPath确定唯一页面
+        //先判断是否存在，然后添加
+        CmsPage exitsCmsPage = cmsPageRepository.findByPageNameAndSiteIdAndPageWebPath(cmsPage.getPageName(),
+            cmsPage.getSiteId(), cmsPage.getPageWebPath());
+        if (exitsCmsPage != null) {
+            ExceptionCast.cast(CmsCode.CMS_ADDPAGE_EXISTSNAME);
+        }
+        cmsPage.setPageId(null);
+        CmsPage save = cmsPageRepository.save(cmsPage);
+        return new CmsPageResult(CommonCode.SUCCESS, save);
     }
 
     @Override
@@ -135,6 +126,17 @@ public class PageServiceImpl implements PageService {
         }
         //返回失败
         return new CmsPageResult(CommonCode.FAIL, new CmsPage());
+    }
+
+    @Override
+    public ResponseResult delete(String id) {
+        Optional<CmsPage> optional = cmsPageRepository.findById(id);
+        if (optional.isPresent()) {
+            cmsPageRepository.delete(optional.get());
+            return ResponseResult.SUCCESS();
+        } else {
+            return ResponseResult.FAIL();
+        }
     }
 
 }

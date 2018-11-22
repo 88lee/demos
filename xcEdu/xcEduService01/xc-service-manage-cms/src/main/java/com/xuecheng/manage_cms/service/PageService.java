@@ -4,6 +4,7 @@ import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
 import com.xuecheng.framework.domain.cms.response.CmsPageResult;
 import com.xuecheng.framework.model.response.QueryResponseResult;
+import com.xuecheng.framework.model.response.ResponseResult;
 
 /**
  * @author LiYuan
@@ -40,10 +41,18 @@ public interface PageService {
     /**
      * 修改页面
      *
-     * @param id   页面id
-     * @param page 页面信息
+     * @param id      页面id
+     * @param cmsPage 页面信息
      * @return 修改结果
      */
     CmsPageResult edit(String id, CmsPage cmsPage);
+
+    /**
+     * 删除页面
+     *
+     * @param id 页面id
+     * @return 执行结果
+     */
+    ResponseResult delete(String id);
 
 }
