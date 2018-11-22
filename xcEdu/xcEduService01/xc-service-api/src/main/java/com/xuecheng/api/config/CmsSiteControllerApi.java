@@ -19,7 +19,7 @@ public interface CmsSiteControllerApi {
         @ApiImplicitParam(name = "size", value = "每页记录数", required = true, paramType = "path", dataType = "int") })
     QueryResponseResult findList(int page, int size, QuerySiteRequest querySiteRequest);
 
-    @ApiOperation("分页查询站点列表")
-    QueryResponseResult findList(QuerySiteRequest querySiteRequest);
+    @ApiOperation("查询所有站点列表")
+    QueryResponseResult findAllList(QuerySiteRequest querySiteRequest);
 
 }

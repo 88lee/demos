@@ -1,6 +1,8 @@
 package com.xuecheng.manage_cms.service;
 
+import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QuerySiteRequest;
+import com.xuecheng.framework.domain.cms.response.CmsPageResult;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 
 /**
@@ -25,6 +27,6 @@ public interface SiteService {
      * @param querySiteRequest 查询条件
      * @return 查询结果
      */
-    QueryResponseResult findList(QuerySiteRequest querySiteRequest);
+    QueryResponseResult findAllList(QuerySiteRequest querySiteRequest);
 
 }

@@ -29,9 +29,9 @@ public class CmsSiteController implements CmsSiteControllerApi {
     }
 
     @Override
-    @GetMapping("/list")
-    public QueryResponseResult findList(QuerySiteRequest querySiteRequest) {
-        return siteService.findList(querySiteRequest);
+    @GetMapping("/allList")
+    public QueryResponseResult findAllList(QuerySiteRequest querySiteRequest) {
+        return siteService.findAllList(querySiteRequest);
     }
 
 }
