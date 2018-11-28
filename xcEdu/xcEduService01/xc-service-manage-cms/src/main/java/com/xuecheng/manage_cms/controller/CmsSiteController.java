@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CmsSiteController implements CmsSiteControllerApi {
 
     @Autowired
-    SiteService siteService;
+    private SiteService siteService;
 
     @Override
     @GetMapping("/list/{page}/{size}")
@@ -29,9 +29,9 @@ public class CmsSiteController implements CmsSiteControllerApi {
     }
 
     @Override
-    @GetMapping("/allList")
-    public QueryResponseResult findAllList(QuerySiteRequest querySiteRequest) {
-        return siteService.findAllList(querySiteRequest);
+    @GetMapping("/list")
+    public QueryResponseResult findList(QuerySiteRequest querySiteRequest) {
+        return siteService.findList(querySiteRequest);
     }
 
 }

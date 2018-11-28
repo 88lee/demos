@@ -61,7 +61,7 @@ public class SiteServiceImpl implements SiteService {
     }
 
     @Override
-    public QueryResponseResult findAllList(QuerySiteRequest querySiteRequest) {
+    public QueryResponseResult findList(QuerySiteRequest querySiteRequest) {
 
         QueryResponseResult queryResponseResult;
         try {

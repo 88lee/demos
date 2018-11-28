@@ -20,6 +20,6 @@ public interface CmsSiteControllerApi {
     QueryResponseResult findList(int page, int size, QuerySiteRequest querySiteRequest);
 
     @ApiOperation("查询所有站点列表")
-    QueryResponseResult findAllList(QuerySiteRequest querySiteRequest);
+    QueryResponseResult findList(QuerySiteRequest querySiteRequest);
 
 }

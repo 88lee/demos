@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CmsPageController implements CmsPageControllerApi {
 
     @Autowired
-    PageService pageService;
+    private PageService pageService;
 
     @Override
     @GetMapping("/list/{page}/{size}")
@@ -49,7 +49,7 @@ public class CmsPageController implements CmsPageControllerApi {
 
     @Override
     @PutMapping("/edit/{id}")
-    public CmsPageResult edit(@PathVariable("id") String id,@RequestBody CmsPage cmsPage) {
+    public CmsPageResult edit(@PathVariable("id") String id, @RequestBody CmsPage cmsPage) {
         return pageService.edit(id, cmsPage);
     }
 
