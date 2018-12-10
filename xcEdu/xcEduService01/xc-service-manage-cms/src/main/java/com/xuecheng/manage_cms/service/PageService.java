@@ -55,4 +55,10 @@ public interface PageService {
      */
     ResponseResult delete(String id);
 
+    /**
+     * 通过页面id查询模板信息
+     * @param pageId 页面id
+     * @return 页面模板信息
+     */
+    String getPageHtml(String pageId);
 }
