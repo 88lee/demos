@@ -3,6 +3,8 @@ package com.xuecheng.test.rabbitmq;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * rabbitmq的入门程序
@@ -24,11 +26,11 @@ public class Producer01 {
         connectionFactory.setPassword("guest");
         //设置虚拟机，一个mq服务可以设置多个虚拟机，每个虚拟机相当于一个独立的mq
         connectionFactory.setVirtualHost("/");
-        try {
-            //和mq建立链接
-            Connection connection = connectionFactory.newConnection();
+        Channel channel = null;
+        //和mq建立链接
+        try (Connection connection = connectionFactory.newConnection()) {
             //创建会话通道
-            Channel channel = connection.createChannel();
+            channel = connection.createChannel();
             //声明队列:如果在mq中没有则要创建
             //参数列表如下：
             //String queue: 队列名称
@@ -49,7 +51,13 @@ public class Producer01 {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-
+            try {
+                if (channel != null) {
+                    channel.close();
+                }
+            } catch (IOException | TimeoutException e) {
+                e.printStackTrace();
+            }
         }
 
     }
