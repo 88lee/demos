@@ -20,6 +20,7 @@ public class ProducerPublish {
 
     private static final String QUEUE_INFORM_SMS = "queue_inform_sms";
 
+    //交换机
     private static final String EXCHANGE_FANOUT_INFORM = "exchange_fanout_inform";
 
     public static void main(String[] args) {
