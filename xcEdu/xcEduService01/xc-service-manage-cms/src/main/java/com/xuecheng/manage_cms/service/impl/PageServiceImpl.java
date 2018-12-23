@@ -1,5 +1,6 @@
 package com.xuecheng.manage_cms.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSDownloadStream;
 import com.mongodb.client.gridfs.model.GridFSFile;
@@ -13,6 +14,7 @@ import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
 import com.xuecheng.framework.model.response.ResponseResult;
+import com.xuecheng.manage_cms.config.RabbitmqConfig;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
 import com.xuecheng.manage_cms.dao.CmsTemplateRepository;
 import com.xuecheng.manage_cms.service.PageService;
@@ -20,10 +22,14 @@ import freemarker.cache.StringTemplateLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.bson.types.ObjectId;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
@@ -60,6 +66,9 @@ public class PageServiceImpl implements PageService {
 
     @Autowired
     GridFSBucket gridFSBucket;
+
+    @Autowired
+    RabbitTemplate rabbitTemplate;
 
     /**
      * 分页查询
@@ -192,8 +201,73 @@ public class PageServiceImpl implements PageService {
         return generateHtml(templateContent, model);
     }
 
+    @Override
+    public ResponseResult post(String pageId) {
+        //执行页面静态化
+        String pageHtml = this.getPageHtml(pageId);
+        //将页面静态化文件存储到GridFs中
+        saveHtml(pageId, pageHtml);
+        //向MQ发消息
+        sendPostPage(pageId);
+        return new ResponseResult(CommonCode.SUCCESS);
+    }
+
+    /**
+     * 向mq 发送消息
+     *
+     * @param pageId 页面id
+     */
+    private void sendPostPage(String pageId) {
+        //得到页面信息
+        CmsPage cmsPage = this.findById(pageId);
+        if (cmsPage == null) {
+            ExceptionCast.cast(CommonCode.INVALID_PARAM);
+        }
+        //创建消息对象
+        Map<String, String> msg = new HashMap<>();
+        msg.put("pageId", pageId);
+        //转成json串
+        String jsonString = JSON.toJSONString(msg);
+        //发送给mq
+        //站点id
+        String siteId = cmsPage.getSiteId();
+        rabbitTemplate.convertAndSend(RabbitmqConfig.EX_ROUTING_CMS_POSTPAGE, siteId, jsonString);
+    }
+
+    /**
+     * 保存html到GridFS
+     *
+     * @param pageId      页面id
+     * @param htmlContent 页面内容
+     * @return 页面
+     */
+    private CmsPage saveHtml(String pageId, String htmlContent) {
+        //先得到页面信息
+        CmsPage cmsPage = this.findById(pageId);
+        if (cmsPage == null) {
+            ExceptionCast.cast(CommonCode.INVALID_PARAM);
+        }
+        ObjectId objectId = null;
+        try {
+            //将htmlContent内容转成输入流
+            InputStream inputStream = IOUtils.toInputStream(htmlContent, "utf-8");
+            //将html文件内容保存到GridFS
+            objectId = gridFsTemplate.store(inputStream, cmsPage.getPageName());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //将html文件id更新到cmsPage中
+        if (objectId != null) {
+            cmsPage.setHtmlFileId(objectId.toHexString());
+        }
+        cmsPageRepository.save(cmsPage);
+        return cmsPage;
+    }
+
     /**
      * 获取模型对象
+     *
      * @param pageId 页面id
      * @return 模型对象
      */
@@ -217,6 +291,7 @@ public class PageServiceImpl implements PageService {
 
     /**
      * 获取模板信息
+     *
      * @param pageId 页面id
      * @return 模板信息
      */
@@ -271,4 +346,5 @@ public class PageServiceImpl implements PageService {
         }
         return null;
     }
+
 }
