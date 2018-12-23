@@ -26,11 +26,9 @@ public class Producer {
         connectionFactory.setPassword("guest");
         //设置虚拟机，一个mq服务可以设置多个虚拟机，每个虚拟机相当于一个独立的mq
         connectionFactory.setVirtualHost("/");
-        Channel channel = null;
         //和mq建立链接
-        try (Connection connection = connectionFactory.newConnection()) {
-            //创建会话通道
-            channel = connection.createChannel();
+        //创建会话通道
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
             //声明队列:如果在mq中没有则要创建
             //参数列表如下：
             //String queue: 队列名称

@@ -30,11 +30,9 @@ public class ProducerTopics {
         connectionFactory.setPassword("guest");
         //设置虚拟机，一个mq服务可以设置多个虚拟机，每个虚拟机相当于一个独立的mq
         connectionFactory.setVirtualHost("/");
-        Channel channel = null;
         //和mq建立链接
-        try (Connection connection = connectionFactory.newConnection()) {
-            //创建会话通道
-            channel = connection.createChannel();
+        //创建会话通道
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
             //声明队列:如果在mq中没有则要创建
             channel.queueDeclare(QUEUE_INFORM_EMAIL, true, false, false, null);
             channel.queueDeclare(QUEUE_INFORM_SMS, true, false, false, null);
@@ -57,12 +55,12 @@ public class ProducerTopics {
             channel.queueBind(QUEUE_INFORM_EMAIL, EXCHANGE_TOPIC_INFORM, ROUTING_KEY_EMAIL);
             channel.queueBind(QUEUE_INFORM_SMS, EXCHANGE_TOPIC_INFORM, ROUTING_KEY_SMS);
 
-//            for (int i = 0; i < 5; i++) {
-//                //发送消息
-//                String messageBody = "send email message to user";
-//                channel.basicPublish(EXCHANGE_TOPIC_INFORM, "inform.email", null, messageBody.getBytes());
-//                System.out.println("send to mq " + messageBody);
-//            }
+            //            for (int i = 0; i < 5; i++) {
+            //                //发送消息
+            //                String messageBody = "send email message to user";
+            //                channel.basicPublish(EXCHANGE_TOPIC_INFORM, "inform.email", null, messageBody.getBytes());
+            //                System.out.println("send to mq " + messageBody);
+            //            }
             for (int i = 0; i < 5; i++) {
                 //发送消息
                 String messageBody = "send email and sms message to user";

@@ -1,104 +1,80 @@
 package com.xuecheng.test.rabbitmq;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeoutException;
-import org.apache.commons.lang.SerializationUtils;
 
-/**
- * @author LiYuan
- * Created on 2018/12/23.
- */
-public class RPCClient {
+public class RPCClient implements AutoCloseable {
 
-    private static Connection connection = null;
+    private Connection connection;
 
-    private Connection getConnection() throws IOException, TimeoutException {
+    private Channel channel;
 
-        if (connection == null) {
-            ConnectionFactory factory = new ConnectionFactory();
-            factory.setVirtualHost("test");
-            factory.setHost("127.0.0.1");
-            factory.setPort(5672);
-            factory.setUsername("guest");
-            factory.setPassword("guest");
-            connection = factory.newConnection();
-        }
-        return connection;
+    private static final String REQUEST_QUEUE_NAME = "rpc_queue";
+
+    private RPCClient() throws IOException, TimeoutException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("127.0.0.1");
+        factory.setPort(5672);
+        factory.setUsername("guest");
+        factory.setPassword("guest");
+        factory.setVirtualHost("/");
+
+        connection = factory.newConnection();
+        channel = connection.createChannel();
     }
 
-    private String sayHelloToServer(String username) throws IOException, InterruptedException, TimeoutException {
-
-        String exchangeName = "rpc_exchange";   //交换器名称
-        String queueName = "rpc_queue";     //队列名称
-        String routingKey = "rpc_key";  //路由键
-
-        Channel channel = getConnection().createChannel();
-        channel.exchangeDeclare(exchangeName, "direct", false, false, null);    //定义交换器
-        channel.queueDeclare(queueName, false, false, false, null); //定义队列
-        channel.queueBind(queueName, exchangeName, routingKey, null); //绑定队列
-        String callbackQueue = channel.queueDeclare().getQueue();   //获得匿名的 独立的 默认队列
-        String correlationId = UUID.randomUUID().toString();    //产生一个 关联ID correlationID
-        QueueingConsumer consumer = new QueueingConsumer(channel);  // 创建一个消费者对象
-        channel.basicConsume(callbackQueue, true, consumer);      //消费消息
-
-        //创建消息属性
-        //携带唯一的 correlationID
-        //携带callback 回调的队列路由键
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().correlationId(correlationId)
-                                                                                 .replyTo(callbackQueue)
-                                                                                 .build();
-        channel.basicPublish(exchangeName, routingKey, basicProperties, SerializationUtils.serialize(username));  //发布消息
-        String response;
-        while (true) {
-            QueueingConsumer.Delivery delivery = consumer.nextDelivery();   //循环获得消息
-            System.out.println("delivery >>>>[user:" + username + "] >> routingKey : " + callbackQueue);
-            if (correlationId.equals(
-                delivery.getProperties().getCorrelationId())) {  //匹配correlationID是否与发出去的correlation的ID一直
-                response = (String) SerializationUtils.deserialize(delivery.getBody()); //获得处理结果
-                break;
+    public static void main(String[] argv) {
+        try (RPCClient fibonacciRpc = new RPCClient()) {
+            for (int i = 0; i < 32; i++) {
+                String i_str = Integer.toString(i);
+                System.out.println(" [x] Requesting fib(" + i_str + ")");
+                String response = fibonacciRpc.call(i_str);
+                System.out.println(" [.] Got '" + response + "'");
             }
-
+        } catch (IOException | TimeoutException | InterruptedException e) {
+            e.printStackTrace();
         }
-        channel.close();
-        //关闭链接
-        return response;
-
     }
 
-    public static void main(String[] args) {
+    private String call(String message) throws IOException, InterruptedException {
+        final String corrId = UUID.randomUUID().toString();
 
-        List<String> usernameList = new ArrayList<>();
+        String replyQueueName = channel.queueDeclare().getQueue();
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(corrId)
+                                                                       .replyTo(replyQueueName)
+                                                                       .build();
 
-        usernameList.add("TONY_A");
-        usernameList.add("TONY_B");
-        usernameList.add("TONY_C");
-        usernameList.add("TONY_D");
-        usernameList.add("TONY_E");
-        usernameList.add("TONY_F");
-        usernameList.add("TONY_G");
+        channel.basicPublish("", REQUEST_QUEUE_NAME, props, message.getBytes(StandardCharsets.UTF_8));
 
-        for (final String username : usernameList) {
-            new Thread(() -> {
-                RPCClient client = new RPCClient();
-                String response;
-                try {
-                    response = client.sayHelloToServer(username);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    response = "ERROR!!!";
+        final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+
+        String ctag = channel.basicConsume(replyQueueName, true, new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) {
+                if (properties.getCorrelationId().equals(corrId)) {
+                    response.offer(new String(body, StandardCharsets.UTF_8));
                 }
-                System.out.println("server response : " + response);
-            }).start();
-        }
+            }
+        });
 
+        String result = response.take();
+        channel.basicCancel(ctag);
+        return result;
+    }
+
+    public void close() throws IOException {
+        connection.close();
     }
 
 }

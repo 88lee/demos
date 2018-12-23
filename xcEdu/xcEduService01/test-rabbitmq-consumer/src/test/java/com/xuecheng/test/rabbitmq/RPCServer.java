@@ -4,67 +4,78 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.QueueingConsumer;
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-import org.apache.commons.lang.SerializationUtils;
+import com.rabbitmq.client.DeliverCallback;
+import java.nio.charset.StandardCharsets;
 
 public class RPCServer {
 
-    public static void main(String[] args) throws InterruptedException, IOException, TimeoutException {
+    private static final String RPC_QUEUE_NAME = "rpc_queue";
 
-        String exchangeName = "rpc_exchange";   //交换器名称
-        String queueName = "rpc_queue";     //队列名称
-        String routingKey = "rpc_key";  //路由键
+    private static int fib(int n) {
+        if (n == 0) {
+            return 0;
+        }
+        if (n == 1) {
+            return 1;
+        }
+        return fib(n - 1) + fib(n - 2);
+    }
 
+    public static void main(String[] argv) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setVirtualHost("test");
         factory.setHost("127.0.0.1");
         factory.setPort(5672);
         factory.setUsername("guest");
         factory.setPassword("guest");
+        factory.setVirtualHost("/");
 
-        final Connection connection = factory.newConnection();    //创建链接
-        final Channel channel = connection.createChannel();
-        channel.exchangeDeclare(exchangeName, "direct", false, false, null);    //定义交换器
-        channel.queueDeclare(queueName, false, false, false, null); //定义队列
-        channel.queueBind(queueName, exchangeName, routingKey, null); //绑定队列
-        QueueingConsumer consumer = new QueueingConsumer(channel);     //创建一个消费者
-        channel.basicConsume(queueName, true, consumer);  //消费消息
+        try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
+            channel.queueDeclare(RPC_QUEUE_NAME, false, false, false, null);
+            channel.queuePurge(RPC_QUEUE_NAME);
 
-        while (true) {
-            QueueingConsumer.Delivery delivery = consumer.nextDelivery();  //获得一条消息
-            final String correlationID = delivery.getProperties().getCorrelationId();    //获得额外携带的correlationID
-            final String replyTo = delivery.getProperties().getReplyTo(); //获得回调的队列路由键
-            final String body = (String) SerializationUtils.deserialize(delivery.getBody());  //获得请求的内容
-            new Thread(() -> {
-                Channel channel1 = null;
+            channel.basicQos(1);
+
+            System.out.println(" [x] Awaiting RPC requests");
+
+            Object monitor = new Object();
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                AMQP.BasicProperties replyProps = new AMQP.BasicProperties.Builder().correlationId(
+                    delivery.getProperties().getCorrelationId()).build();
+
+                String response = "";
+
                 try {
-                    channel1 = connection.createChannel();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                String responseMsg = "welcome " + body; //处理返回内容
-                //返回消息时携带 请求时传过来的correlationID
-                AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().correlationId(correlationID)
-                                                                                    .build();
-                try {
-                    if (channel1 != null) {
-                        //返回处理结果
-                        channel1.basicPublish("", replyTo, properties, SerializationUtils.serialize(responseMsg));
+                    String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+                    int n = Integer.parseInt(message);
+
+                    System.out.println(" [.] fib(" + message + ")");
+                    response += fib(n);
+                } catch (RuntimeException e) {
+                    System.out.println(" [.] " + e.toString());
+                } finally {
+                    channel.basicPublish("", delivery.getProperties().getReplyTo(), replyProps,
+                        response.getBytes(StandardCharsets.UTF_8));
+                    channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                    // RabbitMq consumer worker thread notifies the RPC server owner thread
+                    synchronized (monitor) {
+                        monitor.notify();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
-            }).start();
+            };
 
+            channel.basicConsume(RPC_QUEUE_NAME, false, deliverCallback, (consumerTag -> {
+            }));
+            // Wait and be prepared to consume the message from RPC client.
+            while (true) {
+                synchronized (monitor) {
+                    try {
+                        monitor.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
-
     }
 
 }
