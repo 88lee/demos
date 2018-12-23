@@ -8,20 +8,20 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 /**
- * rabbitmq的入门程序
- *
  * @author LiYuan
- * Created on 2018/12/10.
+ * Created on 2018/12/23.
  */
-public class ProducerPublish {
+public class ProducerRouting {
 
-    //队列
     private static final String QUEUE_INFORM_EMAIL = "queue_inform_email";
 
     private static final String QUEUE_INFORM_SMS = "queue_inform_sms";
 
-    //交换机
-    private static final String EXCHANGE_FANOUT_INFORM = "exchange_fanout_inform";
+    private static final String EXCHANGE_ROUTING_INFORM = "exchange_routing_inform";
+
+    private static final String ROUTING_KEY_EMAIL = "inform_email";
+
+    private static final String ROUTING_KEY_SMS = "inform_sms";
 
     public static void main(String[] args) {
         //通过连接工厂创建新的连接和mq建立连接
@@ -43,26 +43,27 @@ public class ProducerPublish {
             //1、exchange:交换机名称
             //2、type:交换机类型
             //     direct: 对应工作模式 - Routing
-            //     fanout: 对应工作模式 - Publish/Subscribe
+            //     routing: 对应工作模式 - Publish/Subscribe
             //     topic: 对应工作模式 - Topics
             //     headers: 对应工作模式 - headers
             //3、durable:是否持久化,持久化的可以将交换器存盘,在服务器重启的时候不会丢失信息.
             //4、autoDelete:是否自动删除,前提是至少有一个队列或者交换器与这交换器绑定,之后所有与这个交换器绑定的队列或者交换器都与此解绑,一般都设置为false
             //5、internal:是否内置,客户端程序无法直接发送消息到这个交换器中,只能通过交换器路由到交换器的方式
-            channel.exchangeDeclare(EXCHANGE_FANOUT_INFORM, BuiltinExchangeType.FANOUT);
+            channel.exchangeDeclare(EXCHANGE_ROUTING_INFORM, BuiltinExchangeType.DIRECT);
 
             //队列与交换机进行绑定
             //1、String queue: 队列名称
             //2、String exchange: 交换机名称
             //3、String routingKey: 用于绑定的routingKey，相当于区分队列的标签，在发布订阅模式中设置为空字符串
             //4、Map<String, Object> arguments: 绑定的参数
-            channel.queueBind(QUEUE_INFORM_EMAIL, EXCHANGE_FANOUT_INFORM, "");
-            channel.queueBind(QUEUE_INFORM_SMS, EXCHANGE_FANOUT_INFORM, "");
+            channel.queueBind(QUEUE_INFORM_EMAIL, EXCHANGE_ROUTING_INFORM, ROUTING_KEY_EMAIL);
+            channel.queueBind(QUEUE_INFORM_SMS, EXCHANGE_ROUTING_INFORM, ROUTING_KEY_SMS);
 
             for (int i = 0; i < 5; i++) {
                 //发送消息
                 String messageBody = "send inform message to user";
-                channel.basicPublish(EXCHANGE_FANOUT_INFORM, "", null, messageBody.getBytes());
+                channel.basicPublish(EXCHANGE_ROUTING_INFORM, ROUTING_KEY_EMAIL, null, messageBody.getBytes());
+                //channel.basicPublish(EXCHANGE_ROUTING_INFORM, ROUTING_KEY_SMS, null, messageBody.getBytes());
                 System.out.println("send to mq " + messageBody);
             }
         } catch (Exception e) {

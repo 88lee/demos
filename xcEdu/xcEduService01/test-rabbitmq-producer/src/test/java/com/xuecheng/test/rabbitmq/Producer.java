@@ -12,7 +12,7 @@ import java.util.concurrent.TimeoutException;
  * @author LiYuan
  * Created on 2018/12/10.
  */
-public class Producer01 {
+public class Producer {
 
     //队列
     private static final String QUEUE = "HELLO WORLD";
@@ -50,14 +50,6 @@ public class Producer01 {
             System.out.println("send to mq " + messageBody);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (channel != null) {
-                    channel.close();
-                }
-            } catch (IOException | TimeoutException e) {
-                e.printStackTrace();
-            }
         }
 
     }

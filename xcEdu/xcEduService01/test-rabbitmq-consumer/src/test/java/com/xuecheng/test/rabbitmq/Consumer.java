@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
  * @author LiYuan
  * Created on 2018/12/18.
  */
-public class Consumer01 {
+public class Consumer {
 
     //队列
     private static final String QUEUE = "HELLO WORLD";
