@@ -8,15 +8,15 @@ server:
 #可以通过设置 hosts 文件进行验证
 eureka:
   instance:
-#    hostname: localhost2
-    prefer-ip-address: true
+    hostname: localhost
+#    prefer-ip-address: true
   client:
     ##通过eureka.client.registerWithEureka：false和fetchRegistry：false来表明自己是一个eureka server.
     registerWithEureka: false
     fetchRegistry: false
     serviceUrl:
-#      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
-      defaultZone: http://ip1/eureka/,http://ip2/eureka/
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+#      defaultZone: http://ip1/eureka/,http://ip2/eureka/
 
 spring:
   application:

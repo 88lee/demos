@@ -14,7 +14,9 @@ feign:
     enabled: true
 
 #配置 actuator 相关属性, 才能正常使用 HystrixDashboard
-#http://localhost:8765/actuator/hystrix.stream
+#实际上 http://localhost:8765/actuator/hystrix.stream 为 DashBoard 的数据来源
+#DashBoard 会监控这个流, 然后展示数据
+#如果没有请求任何接口就会一直 ping, 请求以后会返回请求的相关数据
 management:
   endpoints:
     web:
