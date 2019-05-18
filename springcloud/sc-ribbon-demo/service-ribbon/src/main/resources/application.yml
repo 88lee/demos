@@ -7,3 +7,14 @@ server:
 spring:
   application:
     name: service-ribbon
+
+#配置 actuator 相关属性, 才能正常使用 HystrixDashboard
+#http://localhost:8764/actuator/hystrix.stream
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      cors:
+        allowed-origins: "*"
+        allowed-methods: "*"

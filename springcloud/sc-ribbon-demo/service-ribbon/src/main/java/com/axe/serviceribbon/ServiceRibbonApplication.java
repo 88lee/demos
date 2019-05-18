@@ -33,23 +33,4 @@ public class ServiceRibbonApplication {
         return new RestTemplate();
     }
 
-    /**
-     * springboot 2.0以后需要配置以下 Servlet 来启动 HystrixDashboard
-     *
-     * http://localhost:8764/hystrix 为控制台路径
-     * http://localhost:8764/hystrix.stream 为进入 Dashboard 的地址
-     * @return 注册配置
-     */
-    @Bean
-    public ServletRegistrationBean getServlet(){
-        HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
-        ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
-        registrationBean.setLoadOnStartup(1);
-        //Single Hystrix App: http://hystrix-app:port/hystrix.stream
-        //修改 urlMappings 属性可以更改进入 Dashboard 的地址
-        registrationBean.addUrlMappings("/hystrix.stream");
-        registrationBean.setName("HystrixMetricsStreamServlet");
-        return registrationBean;
-    }
-
 }
