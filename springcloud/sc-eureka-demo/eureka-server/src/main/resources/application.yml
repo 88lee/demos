@@ -1,15 +1,22 @@
 server:
   port: 8761
 
+#要是用高可用 eureka 需要开启 prefer-ip-address 设置
+#然后配置多个eureka服务的地址到serviceUrl.defaultZone设置后
+#配置eureka 集群的时候可以补设置 hostname 属性
+#eureka 控制台中优先显示机器名,然后是 ip
+#可以通过设置 hosts 文件进行验证
 eureka:
   instance:
-    hostname: localhost
+#    hostname: localhost2
+    prefer-ip-address: true
   client:
     ##通过eureka.client.registerWithEureka：false和fetchRegistry：false来表明自己是一个eureka server.
     registerWithEureka: false
     fetchRegistry: false
     serviceUrl:
-      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+#      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      defaultZone: http://ip1/eureka/,http://ip2/eureka/
 
 spring:
   application:
